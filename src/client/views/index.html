@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Travel App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,100;1,300;1,400;1,500;1,700&display=swap"
+    rel="stylesheet">
+  <script src="https://kit.fontawesome.com/6441a2051f.js" crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+  <div class="user-input-wrapper">
+    <div class="search-city-container">
+      <div class="search-city-box">
+        <label for="city" class="inp">
+          <input type="text" id="city" placeholder="&nbsp;">
+          <span class="label">Enter City Here</span>
+          <span class="focus-bg"></span>
+        </label>
+      </div>
+
+      <div class="departure">
+        <label for="departureDate" class="inp">
+          <input type="text" id="departureDate" placeholder="&nbsp;">
+          <span class="label">Select date of departure</span>
+          <span class="focus-bg"></span>
+        </label>
+      </div>
+
+      <div class="generate">
+        <i id="generate" class="fas fa-search"></i>
+      </div>
+
+    </div>
+  </div>
+
+  
+
+  <div class="home-wrapper">
+    <div class="home-item">
+      <i class="fas fa-tags"></i>
+      <h3>Competitive Pricing</h3>
+      <p>With 500+ suppliers and the purchasing power of 400 million members, this can save you more!</p>
+    </div>
+    <div class="home-item">
+      <i class="fas fa-cloud"></i>
+      <h3>Weather forecasts</h3>
+      <p>Planning your travels made more convenient with up to 16-day forecasts in weather</p>
+    </div>
+    <div class="home-item">
+      <i class="fas fa-globe-americas"></i>
+      <h3>Worldwide Coverage</h3>
+      <p>Use this travel app to to plan your trips all over the world, today!</p>
+    </div>
+  </div>
+
+  <button id="topButton">
+      <i class="fas fa-chevron-up"></i>
+  </button>
+
+
+  <div class="travelPlanner">
+    <h2>Travel Planner</h2>
+  </div>
+
+  <div id="trips"></div>
+
+
+
+  <!-- <div class="myTrip" id="trip1">
+      <div class="imgDiv">
+        <img src="https://pixabay.com/get/57e0d74b4e52b108f5d084609629317e1436d8e1534c704c7d2972d59348c05f_1280.jpg">
+      </div>
+
+      <div class="detailsDiv">
+        <h3 class="destinationDetails">My 3 day trip to Paris, France</h3>
+        <h4>Departing:</h4>
+        <h4>Arriving:</h4>
+        <h3 class="daysAwayDetails">Paris, France is 10 days away!</h3>
+        <h3>Typical weather:</h3>
+        <h4 class="tempDetails">Temp: High 10, Low 5</h4>
+        <h4 class="cloudDetails">Mostly clear throughout the day</h4>
+    </div>
+
+    <div class="buttons">
+      <button type="button" class="pdfButton" onclick="printJS({ printable: 'trip1', type: 'html',css:'/main.css' })">
+        <i class="far fa-file-pdf"></i>
+      </button>
+
+      <button type = "button" id = "removeButton">Click to remove trip</button>
+    </div>
+
+  </div> -->
+
+  <!-- add service worker -->
+  <script>
+    // Check that service workers are supported
+    if ('serviceWorker' in navigator) {
+      // Use the window load event to keep the page load performant
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js');
+      });
+    }
+  </script>
+
+</body>
+
+</html>
