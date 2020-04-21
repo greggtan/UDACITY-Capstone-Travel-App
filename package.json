@@ -5,6 +5,7 @@
   "scripts": {
     "test": "jest",
     "start": "nodemon src/server/start.js",
+    "startAPI": "nodemon src/server/APIserver.js",
     "build-prod": "webpack --config webpack.prod.js",
     "build-dev": "webpack-dev-server --config webpack.dev.js --open",
     "build": "webpack"
@@ -23,6 +24,7 @@
     "litepicker": "^1.1.1",
     "mini-css-extract-plugin": "^0.9.0",
     "moment": "^2.24.0",
+    "mysql": "^2.18.1",
     "nodemon": "^2.0.3",
     "optimize-css-assets-webpack-plugin": "^5.0.3",
     "pg": "^8.0.2",

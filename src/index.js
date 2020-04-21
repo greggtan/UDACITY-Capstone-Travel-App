@@ -1,7 +1,9 @@
 /* Global Variables */
 
 import { getDataFromServer } from './client/js/getDataFromServer.js'
-import {mySort} from './client/js/mySort.js'
+import { postDataToServer } from './client/js/postDataToServer.js'
+import { mySort } from './client/js/mySort.js'
+import { createPage } from './client/js/createPage.js'
 
 
 // Create a new date instance dynamically with JS
@@ -10,6 +12,29 @@ let dd = String(today.getDate()).padStart(2, '0');
 let mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
 let yyyy = today.getFullYear();
 let todayDate = new Date(mm + '/' + dd + '/' + yyyy);
+
+
+// //create POST request to update projectData object endpoint
+// const postDataToServer = async (url, data = {}) => {
+//     console.log(url, data);
+//     const res = await fetch(url, {
+//         method: 'POST',
+//         credentials: 'same-origin',
+//         headers: {
+//             'Content-Type': 'application/json',
+//         },
+//         // Body data type must match "Content-Type" header        
+//         body: JSON.stringify(data),
+//     });
+//     console.log(res);
+//     try {
+//         const newData = await res.json();
+//         // console.log(newData);
+//         return newData;
+//     } catch (error) {
+//         console.log("error", error);
+//     }
+// };
 
 
 
@@ -40,13 +65,27 @@ let dates = [];
 let tripList = [];
 
 
+
+//load the existing trips in database
+window.addEventListener('load', async () => {
+    //get all data from database
+    let alldataDB = await getDataFromServer('http://localhost:4321/getData');
+
+    for (let i = 0; i < alldataDB.length; i++) {
+        createPage(alldataDB[i]);
+    }
+})
+
+
 document.getElementById('generate').addEventListener('click', generateFunction);
 
 async function generateFunction(e) {
+    let dbData = {};
 
     //get city name from user input
     let cityName = document.getElementById('city').value;
     let city = cityName.charAt(0).toUpperCase() + cityName.slice(1);
+
     //call geonames api to get lat and long
     let myURL = geoNamesURL + cityName + geoNamesKey;
     const geoNamesData = await getDataFromServer(myURL);
@@ -60,14 +99,17 @@ async function generateFunction(e) {
     //valid city name
     else {
 
+
         let country = geoNamesData.geonames[0].countryName;
+
+
         let lat = geoNamesData.geonames[0].lat;
         let long = geoNamesData.geonames[0].lng;
-        console.log(country, lat, long);
 
         let fullDate = document.getElementById('departureDate').value;
         let startDate = fullDate.substring(0, 10);
         let endDate = fullDate.substring(13, 23);
+
 
         let departureDate = new Date(startDate);
         let arrivalDate = new Date(endDate);
@@ -89,24 +131,36 @@ async function generateFunction(e) {
             document.getElementById('departureDate').value = '';
 
         } else {
-            //date is not in the past, check if dates already taken by previous trip
-            if (dates.length > 0) {
-                for (let i = 0; i < dates.length; i++) {
-                    let oldDepartDate = dates[i][0];
-                    let oldArriveDate = dates[i][1];
-                    // if depart date in old trip range, or arrival date in old trip range, reject.
-                    if ((departureDate.getTime() >= oldDepartDate && departureDate.getTime() <= oldArriveDate) || (arrivalDate.getTime() >= oldDepartDate && arrivalDate.getTime() <= oldArriveDate)) {
-                        flag = true;
+            //date is not in the past, check if dates already taken by previous trip using database
 
-                    };
-                };
-            };
+            let datesData = await getDataFromServer('http://localhost:4321/getDates');
+            console.log('dates', datesData);
+            if (datesData.length > 0) {
+                for (let i = 0; i < datesData.length; i++) {
+                    let oldDepartDate = new Date(datesData[i].departDate);
+                    let oldArriveDate = new Date(datesData[i].arriveDate);
+                    // if depart date in old trip range, or arrival date in old trip range, reject.
+                    if ((departureDate.getTime() >= oldDepartDate.getTime() && departureDate.getTime() <= oldArriveDate.getTime()) || (arrivalDate.getTime() >= oldDepartDate.getTime() && arrivalDate.getTime() <= oldArriveDate.getTime())) {
+                        flag = true;
+                    }
+                }
+            }
+
             //push into saved dates when valid
             if (flag == true) {
                 alert('You have entered an invalid date, trips cannot overlap. Please try again.')
                 document.getElementById('departureDate').value = '';
             } else {
-                dates.push([departureDate.getTime(), arrivalDate.getTime()]);
+                //store all valid date into object to push to DB later
+                dbData.city = city;
+                dbData.country = country;
+                dbData.departDate = startDate;
+                dbData.arriveDate = endDate;
+                dbData.tripLengthDays = tripLengthDays;
+                dbData.daysDifference = daysDifference;
+
+
+
 
 
                 let pixaURL = `https://pixabay.com/api/?key=16019640-1f3c1a1b42df8a71e13ea56f1&q=${cityName}&image_type=photo`;
@@ -118,59 +172,13 @@ async function generateFunction(e) {
                     let newPixaURL = `https://pixabay.com/api/?key=16019640-1f3c1a1b42df8a71e13ea56f1&q=${country}&image_type=photo`;
                     const newPictureData = await getDataFromServer(newPixaURL);
                     travelPicURL = newPictureData.hits[0].largeImageURL;
+
                 } else {
                     travelPicURL = pictureData.hits[0].largeImageURL;
                 };
 
-                //now that we have all our data stored in variables, dynamically create travel plan item
-                let myTrip = document.createElement('div');
-                tripCount = tripCount + 1
-                myTrip.setAttribute('class', 'myTrip');
-                myTrip.setAttribute('id', `trip${tripCount}`)
+                dbData.travelPicURL = travelPicURL;
 
-                //create image child and append to myTrip div
-                let imgDiv = document.createElement('div');
-                imgDiv.setAttribute('class', 'imgDiv');
-                let myImage = document.createElement('img');
-                myImage.src = travelPicURL;
-
-                imgDiv.appendChild(myImage);
-                myTrip.appendChild(imgDiv);
-
-                //create details child and append to myTrip div
-                let detailsDiv = document.createElement('div');
-                detailsDiv.setAttribute('class', 'detailsDiv');
-
-                let destDetails = document.createElement('h3');
-                destDetails.setAttribute('class', 'destinationDetails');
-                destDetails.innerText = `My ${tripLengthDays} day trip to: ${city}, ${country}`;
-                detailsDiv.appendChild(destDetails);
-
-                let departDetails = document.createElement('h4');
-                departDetails.innerText = `Departing: ${startDate}`;
-                detailsDiv.appendChild(departDetails);
-
-                let arriveDetails = document.createElement('h4');
-                arriveDetails.innerText = `Arriving: ${endDate}`;
-                detailsDiv.appendChild(arriveDetails);
-
-                let daysAwayDetails = document.createElement('h3');
-                daysAwayDetails.setAttribute('class', 'daysAwayDetails');
-                if (daysDifference == 1) {
-                    daysAwayDetails.innerText = `${city}, ${country} is ${daysDifference} day away!`;
-                } else {
-                    daysAwayDetails.innerText = `${city}, ${country} is ${daysDifference} days away!`;
-                }
-                detailsDiv.appendChild(daysAwayDetails);
-
-                let typicalWeather = document.createElement('h3');
-                typicalWeather.innerText = 'Typical Weather:'
-                detailsDiv.appendChild(typicalWeather);
-
-                let tempDetails = document.createElement('h4');
-                tempDetails.setAttribute('class', 'tempDetails');
-                let cloudDetails = document.createElement('h4');
-                cloudDetails.setAttribute('class', 'cloudDetails');
 
 
                 // if within a week from now, give current weather forecast
@@ -179,15 +187,22 @@ async function generateFunction(e) {
                     const weatherData = await getDataFromServer(weatherBitURL);
                     let temp = weatherData.data[0].temp;
 
-                    tempDetails.innerText = `Current temperature: ${temp}°C`;
+
+
+                    //add weather data to DB
+                    dbData.weather = `Current temperature: ${temp}°C`;
 
                     let clouds = weatherData.data[0].clouds;
                     //if clouds>50, mostly cloudy through the day, else mostly clear through the day
                     if (clouds >= 50) {
-                        cloudDetails.innerText = 'Mostly cloudy throughout the day'
+
+                        dbData.cloud = 'Mostly cloudy throughout the day';
                     } else {
-                        cloudDetails.innerText = 'Mostly clear throughout the day'
+
+                        dbData.cloud = 'Mostly clear throughout the day';
                     };
+
+
 
                 }   // else if trip is 8 to 16 days away, use predicted forecast
                 else if (daysDifference <= 16) {
@@ -197,126 +212,51 @@ async function generateFunction(e) {
                     let highTemp = weatherData.data[daysDifference - 1].high_temp;
                     let lowTemp = weatherData.data[daysDifference - 1].low_temp;
 
-                    tempDetails.innerText = `High: ${highTemp}°C, Low: ${lowTemp}°C`
+
+                    dbData.weather = `High: ${highTemp}°C, Low: ${lowTemp}°C`;
 
                     let clouds = weatherData.data[daysDifference - 1].clouds;
                     //if clouds>50, mostly cloudy through the day, else mostly clear through the day
                     if (clouds >= 50) {
-                        cloudDetails.innerText = 'Mostly cloudy throughout the day'
+
+                        dbData.cloud = 'Mostly cloudy throughout the day';
                     } else {
-                        cloudDetails.innerText = 'Mostly clear throughout the day'
+
+                        dbData.cloud = 'Mostly clear throughout the day';
                     };
 
                 } else {
-                    //cannot predict weather more than 16 days ahead
-                    tempDetails.innerText = 'Weather cannot be forecasted for trips more than 16 days later!'
+
+                    dbData.weather = 'Weather cannot be forecasted for trips more than 16 days later!';
+                    dbData.cloud = 'Cloud data cannot be forecasted!';
 
                 }
 
-                detailsDiv.appendChild(tempDetails);
-                detailsDiv.appendChild(cloudDetails);
-                myTrip.appendChild(detailsDiv);
+                //store this trip's data
+                console.log('dbData', dbData);
+                let dbResponse = await postDataToServer('http://localhost:4321/addToDB', dbData);
+                console.log(dbResponse);
 
+                //get all other data (sorted from query)
+                let allDB = await getDataFromServer('http://localhost:4321/getData');
 
-                //create buttons div
-                let buttonsDiv = document.createElement('div');
-                buttonsDiv.setAttribute('class', 'buttonsDiv');
+                //clear out html and reload
+                document.getElementById('trips').innerHTML = '';
+                let tripID = 0;
 
-                //add pdf/print button
-                let pdfButton = document.createElement('button');
-                pdfButton.setAttribute('class', 'pdfButton');
-                pdfButton.addEventListener('click', function () {
-                    printJS({
-                        printable: myTrip.getAttribute('id'),
-                        type: 'html',
-                        css: './main.css'
-                    })
-                });
-
-                let pdfIcon = document.createElement('i');
-                pdfIcon.setAttribute('class', 'far fa-file-pdf');
-
-                pdfButton.appendChild(pdfIcon);
-                buttonsDiv.appendChild(pdfButton);
-
-
-                let newestItemID = myTrip.getAttribute('id');
-                console.log(newestItemID);
-
-                let tripItem = { trip: myTrip, daysDiff: daysDifference };
-                tripList.push(tripItem);
-                //let the first trip planned to pass through
-                if (tripList.length > 0) {
-
-
-                    mySort(tripList);
-
-
-                  
-
-                    // //sort trip list for nearest to furthest away trips
-                    // tripList.sort(function (dayDiff1, dayDiff2) {
-                    //     return dayDiff1.daysDiff - dayDiff2.daysDiff;
-                    // });
-
-                    //set div's inner html to '' to clear the div
-                    document.getElementById('trips').innerHTML = '';
-
-                    //fill up trips html in correct order
-                    for (let item of tripList) {
-                        document.getElementById('trips').appendChild(item.trip);
+                for (let i = 0; i < allDB.length; i++) {
+                    //get id for this newly added trip
+                    if (allDB[i].departDate == startDate) {
+                        tripID = allDB[i].id;
                     }
+                    createPage(allDB[i]);
+                }
 
-                } else {
-                    document.getElementById('trips').appendChild(myTrip);
-                };
-
-                let newestTrip = document.getElementById(newestItemID);
-                newestTrip.scrollIntoView(true);
-
-
-                //create remove button that removes whole node out of the tripList database.
-                let removeButton = document.createElement('button');
-                removeButton.setAttribute('class', 'pdfButton');
-                let removeIcon = document.createElement('i');
-                removeIcon.setAttribute('class', 'far fa-trash-alt');
-                removeButton.appendChild(removeIcon);
-                removeButton.addEventListener('click', function () {
-                    //remove date from taken dates, if taken
-                    for (let i = 0; i < dates.length; i++) {
-                        if (dates[i][0] == departureDate.getTime() && dates[i][1] == arrivalDate.getTime()) {
-                            let removeIndex = i;
-                            dates.splice(removeIndex, 1);
-                        }
-                    }
+                if (tripID !== 0) {
+                    document.getElementById(`trip${tripID}`).scrollIntoView(true);
+                }
 
 
-                    //remove node from tripList
-                    let myIndex = tripList.indexOf(tripItem);
-                    tripList.splice(myIndex, 1);
-
-                    console.log(tripList);
-
-                    //after removing, re-sort and redisplay
-                    if (tripList.length > 0) {
-
-
-                        //set div's inner html to '' to clear the div
-                        document.getElementById('trips').innerHTML = '';
-
-                        //fill up trips html in correct order
-                        for (let item of tripList) {
-                            document.getElementById('trips').appendChild(item.trip);
-                        }
-
-                    } else {
-                        // document.getElementById('trips').appendChild(myTrip);
-                        document.getElementById('trips').innerHTML = '';
-                    };
-                });
-
-                buttonsDiv.appendChild(removeButton);
-                document.getElementById(`trip${tripCount}`).appendChild(buttonsDiv);
 
             };
         };
